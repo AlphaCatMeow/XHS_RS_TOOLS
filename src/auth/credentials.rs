@@ -97,6 +97,10 @@ pub struct ApiSignature {
     #[serde(default)]
     pub post_body: Option<String>,
     
+    /// Full request URL (for GET requests with query params)
+    #[serde(default)]
+    pub request_url: Option<String>,
+    
     /// When this signature was captured
     pub captured_at: bson::DateTime,
     

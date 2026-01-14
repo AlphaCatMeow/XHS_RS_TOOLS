@@ -28,6 +28,8 @@ from xhs_playwright.browser import (
     wait_for_login_complete,
     trigger_signature_pages,
     traverse_feed_channels,
+    trigger_notification_signatures,
+    trigger_note_page_signature,
 )
 from xhs_playwright.qr_code import extract_from_page, base64_to_ascii
 
@@ -139,6 +141,14 @@ async def run_full_login(headless: bool = False, json_mode: bool = False) -> dic
             # [ENABLED] Robotic traversal for full coverage
             print("[Browser] 完成基础签名采集，开始拟人化遍历频道...")
             await traverse_feed_channels(page) 
+            
+            # [v1.1.0] Notification page signatures
+            print("[Browser] 完成频道遍历，开始采集通知页签名...")
+            await trigger_notification_signatures(page) 
+            
+            # [v1.2.0] Note page signature (for comment API)
+            print("[Browser] 完成通知页，开始采集图文详情签名...")
+            await trigger_note_page_signature(page)
             
         except Exception as e:
             import traceback

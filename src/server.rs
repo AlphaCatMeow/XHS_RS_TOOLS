@@ -9,7 +9,7 @@ use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
-    api,
+    api::{self, XhsApiClient},
     auth::AuthService,
     client::XhsClient,
     models::{
@@ -25,10 +25,12 @@ use crate::{
     paths(
         query_trending_handler,
         user_me_handler,
-        homefeed_recommend_handler,
         start_login_session_handler,
         get_session_handler,
         api::feed::category::get_category_feed,
+        api::note::page::get_note_page,
+        mentions_handler,
+        connections_handler,
     ),
     components(
         schemas(
@@ -40,13 +42,15 @@ use crate::{
     ),
     tags(
         (name = "xhs", description = "小红书 API 接口"),
-        (name = "auth", description = "认证相关")
+        (name = "auth", description = "认证相关"),
+        (name = "Feed", description = "主页发现频道：recommend(推荐)、fashion(穿搭)、food(美食)、cosmetics(彩妆)、movie_and_tv(影视)、career(职场)、love(情感)、household_product(家居)、gaming(游戏)、travel(旅行)、fitness(健身)"),
+        (name = "Note", description = "笔记相关接口")
     )
 )]
 struct ApiDoc;
 
 pub struct AppState {
-    pub client: XhsClient,
+    pub api: XhsApiClient,
     pub auth: Arc<AuthService>,
 }
 
@@ -67,7 +71,7 @@ pub struct AppState {
 async fn query_trending_handler(
     State(state): State<Arc<AppState>>,
 ) -> impl IntoResponse {
-    match api::search::query_trending(&state.client, &state.auth).await {
+    match api::search::query_trending(&state.api).await {
         Ok(res) => Json(res).into_response(),
         Err(e) => Json(serde_json::json!({
             "code": -1,
@@ -93,7 +97,7 @@ async fn query_trending_handler(
 async fn user_me_handler(
     State(state): State<Arc<AppState>>,
 ) -> impl IntoResponse {
-    match api::user::get_current_user(&state.client, &state.auth).await {
+    match api::user::get_current_user(&state.api).await {
         Ok(res) => Json(res).into_response(),
         Err(e) => Json(serde_json::json!({
             "code": -1,
@@ -120,9 +124,8 @@ async fn user_me_handler(
 )]
 async fn homefeed_recommend_handler(
     State(state): State<Arc<AppState>>,
-    Json(request): Json<HomefeedRequest>,
 ) -> impl IntoResponse {
-    match api::feed::recommend::get_homefeed_recommend(&state.client, &state.auth, request).await {
+    match api::feed::recommend::get_homefeed_recommend(&state.api).await {
         Ok(res) => Json(res).into_response(),
         Err(e) => Json(serde_json::json!({
             "code": -1,
@@ -180,6 +183,58 @@ async fn get_session_handler(
     }
 }
 
+/// 通知页-评论和@
+/// 
+/// 获取评论和@通知列表
+#[utoipa::path(
+    get,
+    path = "/api/notification/mentions",
+    tag = "xhs",
+    summary = "通知页-评论和@",
+    responses(
+        (status = 200, description = "评论和@通知列表")
+    )
+)]
+async fn mentions_handler(
+    State(state): State<Arc<AppState>>,
+) -> impl IntoResponse {
+    match api::notification::mentions::get_mentions(&state.api).await {
+        Ok(res) => Json(res).into_response(),
+        Err(e) => Json(serde_json::json!({
+            "code": -1,
+            "success": false,
+            "msg": e.to_string(),
+            "data": null
+        })).into_response(),
+    }
+}
+
+/// 通知页-新增关注
+/// 
+/// 获取新增关注通知列表
+#[utoipa::path(
+    get,
+    path = "/api/notification/connections",
+    tag = "xhs",
+    summary = "通知页-新增关注",
+    responses(
+        (status = 200, description = "新增关注通知列表")
+    )
+)]
+async fn connections_handler(
+    State(state): State<Arc<AppState>>,
+) -> impl IntoResponse {
+    match api::notification::connections::get_connections(&state.api).await {
+        Ok(res) => Json(res).into_response(),
+        Err(e) => Json(serde_json::json!({
+            "code": -1,
+            "success": false,
+            "msg": e.to_string(),
+            "data": null
+        })).into_response(),
+    }
+}
+
 pub async fn start_server() -> anyhow::Result<()> {
     // Initialize MongoDB connection
     let mongodb_uri = std::env::var("MONGODB_URI")
@@ -189,7 +244,8 @@ pub async fn start_server() -> anyhow::Result<()> {
     let auth = Arc::new(AuthService::new(&mongodb_uri).await?);
     
     let client = XhsClient::new()?;
-    let state = Arc::new(AppState { client, auth });
+    let api = XhsApiClient::new(client, auth.clone());
+    let state = Arc::new(AppState { api, auth });
 
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
@@ -197,6 +253,9 @@ pub async fn start_server() -> anyhow::Result<()> {
         .route("/api/user/me", get(user_me_handler))
         .route("/api/feed/homefeed/recommend", post(homefeed_recommend_handler))
         .route("/api/feed/homefeed/:category", post(api::feed::category::get_category_feed))
+        .route("/api/note/page", get(api::note::page::get_note_page))
+        .route("/api/notification/mentions", get(mentions_handler))
+        .route("/api/notification/connections", get(connections_handler))
         .route("/api/auth/login-session", post(start_login_session_handler))
         .route("/api/auth/session", get(get_session_handler))
         .layer(tower_http::trace::TraceLayer::new_for_http())

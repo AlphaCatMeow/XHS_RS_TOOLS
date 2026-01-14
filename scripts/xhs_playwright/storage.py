@@ -70,6 +70,7 @@ def save_signature(endpoint: str, signature_data: dict) -> None:
                 "x_xray_traceid": signature_data.get("x-xray-traceid", ""),
                 "method": signature_data.get("method", "GET"),
                 "post_body": signature_data.get("post_body", ""),
+                "request_url": signature_data.get("request_url", ""),  # 完整请求 URL
                 "captured_at": datetime.utcnow(),
                 "is_valid": True
             }

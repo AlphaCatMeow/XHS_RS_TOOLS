@@ -29,4 +29,5 @@ tower-http = { version = "0.6", features = ["cors", "trace"] }
 mongodb = "2.8"
 chrono = { version = "0.4", features = ["serde"] }
 qrcode = "0.14"  # For terminal ASCII QR code display
+urlencoding = "2.1.3"
 

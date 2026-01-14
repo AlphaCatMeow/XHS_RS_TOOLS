@@ -13,6 +13,8 @@ from .browser import (
     navigate_to_login,
     wait_for_login_complete,
     trigger_signature_pages,
+    traverse_feed_channels,
+    trigger_notification_signatures,
 )
 
 __all__ = [
@@ -35,4 +37,5 @@ __all__ = [
     "wait_for_login_complete",
     "trigger_signature_pages",
     "traverse_feed_channels",
+    "trigger_notification_signatures",
 ]

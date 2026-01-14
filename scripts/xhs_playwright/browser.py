@@ -10,9 +10,11 @@ from .config import (
     ANTI_DETECTION_JS,
     XHS_EXPLORE_URL,
     XHS_SEARCH_URL,
+    XHS_NOTIFICATION_URL,
     QR_SELECTORS,
     LOGIN_TIMEOUT_SECONDS,
     FEED_CHANNELS,
+    ENDPOINT_PATTERNS,
 )
 
 
@@ -117,7 +119,16 @@ async def wait_for_login_complete(
     max_polls = (timeout * 1000) // poll_interval
     
     for i in range(int(max_polls)):
-        await page.wait_for_timeout(poll_interval)
+        try:
+            await page.wait_for_timeout(poll_interval)
+        except Exception as e:
+            # Handle browser/page closed by user
+            if "Target" in str(e) and "closed" in str(e):
+                print("\n[Browser] 用户关闭了浏览器窗口")
+                result["status"] = "cancelled"
+                result["error"] = "Browser was closed by user"
+                return result
+            raise
         
         # 1. URL Check
         current_url = page.url
@@ -176,25 +187,59 @@ async def trigger_signature_pages(page: Page) -> None:
     """
     Navigate to pages that trigger API calls for signature capture.
     
-    Visits search page to trigger trending and homefeed APIs.
+    Visits explore page and clicks search box to trigger querytrending API.
     
     Args:
         page: Playwright page object
     """
-    print("[签名捕获] 正在访问搜索页面获取签名...")
+    print("[签名捕获] 正在触发 search_trending API...")
     
     try:
-        await page.goto(XHS_SEARCH_URL, wait_until="domcontentloaded")
-        await page.wait_for_timeout(3000)  # Wait for API calls
-    except Exception as e:
-        print(f"[签名捕获] 访问搜索页面失败: {e}")
-    
-    # Return to explore to trigger more APIs if needed
-    try:
+        # Go to explore page first
         await page.goto(XHS_EXPLORE_URL, wait_until="domcontentloaded")
         await page.wait_for_timeout(2000)
+        
+        # Click on the search input to trigger querytrending
+        # The search box has various selectors, try multiple
+        search_selectors = [
+            'input[placeholder*="搜索"]',
+            '.search-input',
+            '#search-input',
+            'input[type="search"]',
+            '.nav-search input',
+        ]
+        
+        clicked = False
+        for selector in search_selectors:
+            try:
+                search_box = page.locator(selector).first
+                if await search_box.is_visible(timeout=2000):
+                    # Define predicate for querytrending response
+                    def trending_predicate(response):
+                        return ENDPOINT_PATTERNS["search_trending"] in response.url and response.status == 200
+                    
+                    async with page.expect_response(trending_predicate, timeout=8000):
+                        await search_box.click()
+                    
+                    print("  -> [search_trending] ✅ 成功捕获签名")
+                    clicked = True
+                    break
+            except Exception:
+                continue
+        
+        if not clicked:
+            print("  -> [search_trending] ⚠️ 未找到搜索框元素")
+        
+        # Close search dropdown by pressing Escape
+        await page.keyboard.press("Escape")
+        await page.wait_for_timeout(500)
+        
+        # Re-navigate to explore page to reset state for channel traversal
+        await page.goto(XHS_EXPLORE_URL, wait_until="domcontentloaded")
+        await page.wait_for_timeout(2000)
+        
     except Exception as e:
-        print(f"[签名捕获] 返回主页失败: {e}")
+        print(f"[签名捕获] search_trending 采集失败: {e}")
 
 
 async def traverse_feed_channels(page: Page):
@@ -268,3 +313,130 @@ async def traverse_feed_channels(page: Page):
             pass
             
     print("[Browser] 频道遍历完成\n")
+
+
+async def trigger_notification_signatures(page: Page):
+    """
+    Navigate to notification page to capture mentions and connections signatures.
+    
+    Steps:
+    1. Navigate to /notification (default: mentions tab)
+    2. Wait for mentions API response
+    3. Click "新增关注" tab  
+    4. Wait for connections API response
+    """
+    import random
+    
+    print("\n[Browser] 开始采集通知页签名...")
+    
+    # Navigate to notification page
+    await page.goto(XHS_NOTIFICATION_URL)
+    await page.wait_for_load_state("networkidle")
+    await page.wait_for_timeout(2000)  # Allow initial API to fire
+    
+    # Mentions is default tab, should have already triggered
+    print("  -> [评论和@] 默认页面已加载")
+    
+    # Click "新增关注" tab
+    try:
+        # Define predicate for connections response
+        def connections_predicate(response):
+            if ENDPOINT_PATTERNS["notification_connections"] not in response.url:
+                return False
+            return response.status == 200
+        
+        # Find and click the connections tab
+        connections_tab = page.get_by_text("新增关注", exact=True).first
+        
+        if await connections_tab.is_visible():
+            async with page.expect_response(connections_predicate, timeout=8000):
+                await connections_tab.click()
+            print("  -> [新增关注] ✅ 成功捕获签名")
+        else:
+            print("  -> [新增关注] ⚠️ 找不到Tab元素")
+        
+        # Human delay
+        delay = random.uniform(2000, 3000)
+        await page.wait_for_timeout(delay)
+        
+    except Exception as e:
+        print(f"  -> [新增关注] ❌ 采集失败: {e}")
+    
+    print("[Browser] 通知页签名采集完成\n")
+
+
+async def trigger_note_page_signature(page: Page):
+    """
+    Navigate to a note detail page to capture comment/page signature.
+    
+    This opens a sample note from the homepage to trigger the comment API.
+    The signature captured can be reused for any note_id.
+    """
+    import random
+    
+    print("\n[Browser] 开始采集图文详情签名...")
+    
+    # First, ensure we're on explore page
+    # Use domcontentloaded instead of networkidle to avoid timeout
+    if "/explore" not in page.url:
+        await page.goto(XHS_EXPLORE_URL, wait_until="domcontentloaded")
+        await page.wait_for_timeout(3000)  # Wait for content to render
+    
+    try:
+        # Wait for note cards to appear
+        # Try multiple selectors for note cards
+        selectors = [
+            'section.note-item',           # Standard note item
+            '.note-item',                   # Alternative
+            'a[href*="/explore/"]',         # Links to note pages
+            '.feeds-page section',          # Feed page sections
+        ]
+        
+        note_card = None
+        for selector in selectors:
+            try:
+                locator = page.locator(selector).first
+                if await locator.is_visible(timeout=2000):
+                    note_card = locator
+                    print(f"  -> 找到笔记卡片 (selector: {selector})")
+                    break
+            except:
+                continue
+        
+        if note_card:
+            # Define predicate for comment page response
+            def comment_predicate(response):
+                pattern = ENDPOINT_PATTERNS.get("note_page", "/api/sns/web/v2/comment/page")
+                if pattern not in response.url:
+                    return False
+                return response.status == 200
+            
+            # Click note card to open detail modal
+            try:
+                async with page.expect_response(comment_predicate, timeout=15000):
+                    await note_card.click()
+                
+                print("  -> [图文详情] ✅ 成功捕获签名")
+            except Exception as click_err:
+                print(f"  -> [图文详情] ⚠️ 点击或等待响应失败: {click_err}")
+            
+            # Wait a moment then close the modal
+            await page.wait_for_timeout(2000)
+            
+            # Close modal by pressing Escape
+            try:
+                await page.keyboard.press("Escape")
+                await page.wait_for_timeout(500)
+            except:
+                pass
+        else:
+            print("  -> [图文详情] ⚠️ 找不到笔记卡片")
+            
+    except Exception as e:
+        print(f"  -> [图文详情] ❌ 采集失败: {e}")
+    
+    # Human delay
+    delay = random.uniform(1000, 2000)
+    await page.wait_for_timeout(delay)
+    
+    print("[Browser] 图文详情签名采集完成\n")

@@ -27,20 +27,28 @@
 3.  **持久化会话**: 将 (Cookie + Header + Signature + Payload) 作为一个原子单元存储。
 4.  **服务端重放**: Rust 后端通过 API 暴露这些能力。当客户端请求某个接口时，后端会**强制使用**数据库中存储的、已通过验证的 Payload 和签名进行请求，从而完美规避反爬策略。
 
-## 🚀 当前功能 (v1.0.0)
+## 🚀 当前功能 (v1.1.0)
 
 以下均为目前已实现并验证的功能：
 
-*   **二维码扫码登录**: 从DOM中获取二维码图片信息，可以直接复制到浏览器展示，也可以客户端自行实现在控制台显示ascii二维码。
+*   **二维码扫码登录**: 从 DOM 中获取二维码图片信息，可以直接复制到浏览器展示，也可以客户端自行实现在控制台显示 ASCII 二维码。
 *   **会话持久化**: 登录成功后自动保存 Session，支持长时间复用（具体失效时间不可保证），无需频繁扫码。
 *   **全频道 Feed 采集**: 支持首页推荐及所有子频道（穿搭、美食、情感、游戏等 11 个频道）的数据获取。
     *   *特色*: 采用拟人化遍历算法，精准捕获各频道专属签名。
 *   **热搜榜单**: 获取实时热搜关键词。
+*   **通知页采集** (NEW): 获取评论和 @ 、新增关注通知。
+*   **图文详情** (NEW): 获取指定笔记的评论列表，支持分页。
 
 ## 📅 开发日志 (Dev Log)
 
 | 版本 | 日期 | 更新内容 | 备注 |
 | :--- | :--- | :--- | :--- |
+| **v1.1.0** | 2026-01-15 | **新增接口与模块重构** | |
+| | | - 新增通知页采集: `/api/notification/mentions` 和 `/connections` | 评论/@、新增关注 |
+| | | - 新增图文详情: `/api/note/page` | 笔记评论分页 |
+| | | - 重构 API 公共模块 `XhsApiClient` | Header/Cookie/Signature 统一管理 |
+| | | - 优化 Swagger 文档 | 详细列出 11 个 Feed 频道 |
+| | | - 修复浏览器关闭时崩溃问题 | 捕获 TargetClosedError |
 | **v1.0.0** | 2026-01-11 | **项目初始化 Release** | |
 | | | - 实现 Playwright 扫码登录流程 (Python) | 解决 Headless 模式风控 |
 | | | - 实现 Rust Axum API 服务端 | 提供 `/api/auth` 等接口 |
@@ -79,8 +87,10 @@ python client_demo.py
 | **Auth** | `/api/auth/session` | ✅ | 检查 Session 有效性 |
 | **User** | `/api/user/me` | ✅ | 获取当前用户信息 |
 | **Search** | `/api/search/trending` | ✅ | 获取实时热搜关键词 |
-| **Feed** | `/api/feed/homefeed/recommend` | ✅ | 首页推荐流 |
-| **Feed** | `/api/feed/homefeed/{category}` | ✅ | 11+ 垂直频道 (穿搭/美食/游戏等) |
+| **Feed** | `/api/feed/homefeed/{category}` | ✅ | 11 个垂直频道 (recommend/fashion/food/cosmetics/movie_and_tv/career/love/household_product/gaming/travel/fitness) |
+| **Notification** | `/api/notification/mentions` | ✅ | 获取评论和 @ 通知 |
+| **Notification** | `/api/notification/connections` | ✅ | 获取新增关注通知 |
+| **Note** | `/api/note/page` | ✅ | 获取笔记评论 (支持分页) |
 
 ## 📚 接口文档 (API Docs)
 

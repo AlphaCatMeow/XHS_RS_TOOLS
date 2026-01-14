@@ -9,6 +9,7 @@ DATABASE_NAME = "xhs_tools"
 # XHS URLs
 XHS_EXPLORE_URL = "https://www.xiaohongshu.com/explore"
 XHS_SEARCH_URL = "https://www.xiaohongshu.com/search_result?keyword=test"
+XHS_NOTIFICATION_URL = "https://www.xiaohongshu.com/notification"
 
 # Timeouts
 LOGIN_TIMEOUT_SECONDS = 180
@@ -40,13 +41,18 @@ ANTI_DETECTION_JS = '''
 '''
 
 # Endpoint URL patterns for signature capture
-# Endpoint URL patterns for signature capture
 ENDPOINT_PATTERNS = {
-    "user_me": "/api/sns/web/v1/user/me",
-    "search_trending": "/api/sns/web/v1/search/querytrending",
-    # Generic feed pattern (Updated to match real URL: .../homefeed)
+    "user_me": "/api/sns/web/v2/user/me",  # 登录后自动触发
+    "search_trending": "/api/sns/web/v1/search/querytrending",  # 登录后自动触发
+    # Feed endpoint (homefeed_recommend 登录后自动触发)
     "home_feed": "/api/sns/web/v1/homefeed",
+    # Notification endpoints (v1.1.0) - 需要 playwright 触发
+    "notification_mentions": "/api/sns/web/v1/you/mentions",
+    "notification_connections": "/api/sns/web/v1/you/connections",
+    # Note endpoints - 需要 playwright 触发
+    "note_page": "/api/sns/web/v2/comment/page",  # 图文详情（评论分页）
 }
+
 
 # Channel Mapping: Tab Name -> API Category ID
 # This ensures we wait for the EXACT correct response

@@ -98,6 +98,7 @@ class SignatureCapture:
                         "x-xray-traceid": headers.get("x-xray-traceid", ""),
                         "method": request.method,
                         "post_body": post_data,
+                        "request_url": url,  # 完整 URL (含查询参数)
                     }
                     
                     # Log capture

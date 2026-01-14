@@ -300,6 +300,86 @@ def test_all_apis():
         except Exception as e:
             print(f"    ❌ Error: {e}")
     
+    # ------------------------------------------
+    # [v1.1.0] Notification API Tests
+    # ------------------------------------------
+    print("\n[+] GET /api/notification/mentions (评论和@)")
+    try:
+        req = urllib.request.Request(f"{BASE_URL}/api/notification/mentions")
+        with urllib.request.urlopen(req) as response:
+            data = json.loads(response.read().decode('utf-8'))
+        
+        if data.get("success"):
+            messages = data.get("data", {}).get("message_list", [])
+            print(f"    ✅ 获取评论和@成功 (消息数: {len(messages)})")
+            for i, msg in enumerate(messages[:3]):
+                title = msg.get('title', '未知')
+                user = msg.get('user_info', {}).get('nickname', '未知')
+                print(f"    [{i+1}] {title} (用户: {user})")
+        else:
+            print(f"    ⚠️ 无数据")
+            msg = data.get('msg')
+            if msg:
+                print(f"      {msg}")
+    except Exception as e:
+        print(f"    ❌ Error: {e}")
+
+    print("\n[+] GET /api/notification/connections (新增关注)")
+    try:
+        req = urllib.request.Request(f"{BASE_URL}/api/notification/connections")
+        with urllib.request.urlopen(req) as response:
+            data = json.loads(response.read().decode('utf-8'))
+        
+        if data.get("success"):
+            messages = data.get("data", {}).get("message_list", [])
+            print(f"    ✅ 获取新增关注成功 (消息数: {len(messages)})")
+            for i, msg in enumerate(messages[:3]):
+                user = msg.get('user', {}).get('nickname', '未知')
+                print(f"    [{i+1}] {user} 开始关注你")
+        else:
+            print(f"    ⚠️ 无数据")
+            msg = data.get('msg')
+            if msg:
+                print(f"      {msg}")
+    except Exception as e:
+        print(f"    ❌ Error: {e}")
+    
+    # ------------------------------------------
+    # [v1.2.0] Note Page API Test
+    # ------------------------------------------
+    print("\n[+] GET /api/note/page (图文详情)")
+    try:
+        # Use a sample note_id and xsec_token for testing
+        # In real usage, these would come from a note detail page
+        test_note_id = "695f0f1d00000000210317c5"
+        test_xsec_token = "ABSWQGp8zRp5VzyF6DXyPCnEsSakbUyTGAP3_so8877G4="
+        
+        params = urllib.parse.urlencode({
+            "note_id": test_note_id,
+            "cursor": "",
+            "xsec_token": test_xsec_token,
+            "image_formats": "jpg,webp,avif"
+        })
+        
+        req = urllib.request.Request(f"{BASE_URL}/api/note/page?{params}")
+        with urllib.request.urlopen(req, timeout=10) as response:
+            data = json.loads(response.read().decode('utf-8'))
+        
+        if data.get("success"):
+            comments = data.get("data", {}).get("comments", [])
+            print(f"    ✅ 获取图文详情成功 (评论数: {len(comments)})")
+            for i, comment in enumerate(comments[:3]):
+                content = comment.get('content', '无内容')[:30]
+                user = comment.get('user_info', {}).get('nickname', '未知')
+                print(f"    [{i+1}] {user}: {content}...")
+        else:
+            print(f"    ⚠️ 无数据")
+            msg = data.get('msg')
+            if msg:
+                print(f"      {msg}")
+    except Exception as e:
+        print(f"    ❌ Error: {e}")
+    
     print("\n" + "="*50)
     print("  ✅ API测试完成")
     print("="*50)
