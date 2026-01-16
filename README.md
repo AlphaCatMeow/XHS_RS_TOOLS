@@ -71,27 +71,27 @@ cargo run
 
 ## 📅 开发日志 (Dev Log)
 
-| 版本 | 日期 | 更新内容 | 备注 |
+| 版本 | 日期 | 更新内容 | 
 | :--- | :--- | :--- | :--- |
-| **v1.4.0** | 2026-01-17 | **Search API Suite 完整实现** | |
-| | | - 🔍 **搜索全家桶**: 新增 `search/notes`, `recommend`, `onebox`, `filter` | 覆盖搜索核心链路 |
-| | | - 📝 **Swagger 更新**: 新增 Search 分组，完善 Request/Response 模型 | 开发者体验提升 |
-| **v1.3.1** | 2026-01-17 | **纯 Rust 登录流程重构** | |
-| | | - 🚀 **登录 API 化**: 新增 `/api/auth/guest-init`、`/qrcode/create`、`/qrcode/status` | 全流程 Rust 实现 |
-| | | - 🔧 **Playwright 职责简化**: 仅用于获取初始访客 Cookie，无需浏览器子进程 | 架构更清晰 |
-| | | - 🔄 **重试机制**: 访客 Cookie 获取支持最多 3 次重试，超时容错增强 | 提高可靠性 |
-| **v1.3.0** | 2026-01-16 | **架构重构与接口补全** | |
-| | | - 🏗️ **纯算法架构迁移**: 移除 Playwright 签名依赖，全面转向 Python Agent 实时签名 | 性能大幅提升，依赖减少 |
-| | | - 🐛 **修复 406 错误**: 修正 Notifications 接口的签名参数处理逻辑 | 解决了接口调用失败问题 |
-| | | - 🎉 **新增接口**: 赞和收藏通知 (`/api/notification/likes`) | |
-| | | - 🤖 **Agent 管理**: Rust 服务自动管理 Python Agent 生命周期 | 一键启动 |
-| **v1.2.0** | 2026-01-16 | **新增端点与代码优化** | |
+| **v1.4.0** | 2026-01-17 | **Search API Suite 完整实现** | 
+| | | - 🔍 **搜索全家桶**: 新增 `search/notes`, `recommend`, `onebox`, `filter` | 
+| | | - 📝 **Swagger 更新**: 新增 Search 分组，完善 Request/Response 模型 | 
+| **v1.3.1** | 2026-01-17 | **纯 Rust 登录流程重构** | 
+| | | - 🚀 **登录 API 化**: 新增 `/api/auth/guest-init`、`/qrcode/create`、`/qrcode/status` | 
+| | | - 🔧 **Playwright 职责简化**: 仅用于获取初始访客 Cookie，无需浏览器子进程 | 
+| | | - 🔄 **重试机制**: 访客 Cookie 获取支持最多 3 次重试，超时容错增强 | 
+| **v1.3.0** | 2026-01-16 | **架构重构与接口补全** | 
+| | | - 🏗️ **纯算法架构迁移**: 移除 Playwright 签名依赖，全面转向 Python Agent 实时签名 | 
+| | | - 🐛 **修复 406 错误**: 修正 Notifications 接口的签名参数处理逻辑 | 
+| | | - 🎉 **新增接口**: 赞和收藏通知 (`/api/notification/likes`) | 
+| | | - 🤖 **Agent 管理**: Rust 服务自动管理 Python Agent 生命周期 | 
+| **v1.2.0** | 2026-01-16 | **新增端点与代码优化** | 
 | | | - 🎉 新增 `/api/auth/qrcode-status` | 实时查询扫码登录状态 |
-| | | - 🐛 修复 Python 脚本 UTF-8 编码问题 | |
-| **v1.1.0** | 2026-01-15 | **新增接口与模块重构** | |
-| | | - ✨ 新增通知页采集: `/api/notification/mentions` 和 `/connections` | |
-| | | - ✨ 新增图文详情: `/api/note/page` | |
-| | | - ♻️ 重构 API 公共模块，统一请求处理逻辑 | |
+| | | - 🐛 修复 Python 脚本 UTF-8 编码问题 | 
+| **v1.1.0** | 2026-01-15 | **新增接口与模块重构** | 
+| | | - ✨ 新增通知页采集: `/api/notification/mentions` 和 `/connections` | 
+| | | - ✨ 新增图文详情: `/api/note/page` | 
+| | | - ♻️ 重构 API 公共模块，统一请求处理逻辑 | 
 
 ## 🛠️ 快速开始
 
@@ -123,7 +123,7 @@ python client_demo.py
 | **Notification** | `/api/notification/mentions` | ✅ | 获取评论和 @ 通知 |
 | **Notification** | `/api/notification/connections` | ✅ | 获取新增关注通知 |
 | **Notification** | `/api/notification/likes` | ✅ | 获取赞和收藏通知 |
-| **Note** | `/api/note/page` | ✅ | 获取笔记评论 |
+| **Note** | `/api/note/page` | ✅ | 获取笔记内容及评论 |
 
 ## 📚 接口文档 (API Docs)
 
