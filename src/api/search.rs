@@ -88,3 +88,25 @@ pub async fn search_filter(api: &XhsApiClient, keyword: &str, search_id: &str) -
     let result = serde_json::from_str::<SearchFilterResponse>(&text)?;
     Ok(result)
 }
+
+/// 搜索用户列表
+pub async fn search_user(api: &XhsApiClient, mut req: SearchUserRequest) -> Result<SearchUserResponse> {
+    if req.search_id.is_none() {
+        req.search_id = Some(generate_search_id());
+    }
+    if req.request_id.is_none() {
+        req.request_id = Some(generate_request_id());
+    }
+
+    let path = "/api/sns/web/v1/search/usersearch";
+    
+    // 包装请求
+    let request_wrapper = SearchUserRequestBody {
+        search_user_request: req,
+    };
+    
+    let payload = serde_json::to_value(&request_wrapper)?;
+    let text = api.post_algo(path, payload).await?;
+    let result = serde_json::from_str::<SearchUserResponse>(&text)?;
+    Ok(result)
+}

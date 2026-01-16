@@ -18,7 +18,8 @@ use crate::{
         search::{QueryTrendingResponse, QueryTrendingData, TrendingQuery, TrendingHintWord, SearchRecommendResponse, SearchRecommendData, SugItem,
             SearchNotesRequest, SearchNotesResponse, SearchNotesData, SearchFilterOption,
             SearchOneboxRequest, SearchOneboxResponse,
-            SearchFilterResponse, SearchFilterData, FilterItem, FilterTag
+            SearchFilterResponse, SearchFilterData, FilterItem, FilterTag,
+            SearchUserRequest, SearchUserResponse, SearchUserData, SearchUserItem
         },
         user::{UserMeResponse, UserInfo},
     },
@@ -38,6 +39,7 @@ use crate::{
         search_notes_handler,
         search_onebox_handler,
         search_filter_handler,
+        search_user_handler,
         user_me_handler,
         guest_init_handler,
         create_qrcode_handler,
@@ -56,6 +58,7 @@ use crate::{
             SearchNotesRequest, SearchNotesResponse, SearchNotesData, SearchFilterOption,
             SearchOneboxRequest, SearchOneboxResponse,
             SearchFilterResponse, SearchFilterData, FilterItem, FilterTag,
+            SearchUserRequest, SearchUserResponse, SearchUserData, SearchUserItem,
             UserMeResponse, UserInfo,
             MentionsResponse, MentionsData,
             ConnectionsResponse, ConnectionsData,
@@ -68,7 +71,7 @@ use crate::{
         (name = "auth", description = "认证相关"),
         (name = "Feed", description = "主页发现频道：recommend(推荐)、fashion(穿搭)、food(美食)、cosmetics(彩妆)、movie_and_tv(影视)、career(职场)、love(情感)、household_product(家居)、gaming(游戏)、travel(旅行)、fitness(健身)"),
         (name = "Note", description = "笔记相关接口"),
-        (name = "Search", description = "搜索相关接口: 联想词、笔记搜索、Onebox、筛选器")
+        (name = "Search", description = "搜索相关接口：notes(笔记)、usersearch(用户)、onebox(聚合)、recommend(推荐)、filter(筛选)")
     )
 )]
 struct ApiDoc;
@@ -226,6 +229,34 @@ async fn search_filter_handler(
     Query(params): Query<SearchFilterParams>,
 ) -> impl IntoResponse {
     match api::search::search_filter(&state.api, &params.keyword, &params.search_id).await {
+        Ok(res) => Json(res).into_response(),
+        Err(e) => Json(serde_json::json!({
+            "code": -1,
+            "success": false,
+            "msg": e.to_string(),
+            "data": null
+        })).into_response(),
+    }
+}
+
+/// 搜索用户
+/// 
+/// 搜索小红书用户
+#[utoipa::path(
+    post,
+    path = "/api/search/usersearch",
+    tag = "Search",
+    summary = "搜索用户",
+    request_body = SearchUserRequest,
+    responses(
+        (status = 200, description = "用户搜索结果", body = SearchUserResponse)
+    )
+)]
+async fn search_user_handler(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<SearchUserRequest>,
+) -> impl IntoResponse {
+    match api::search::search_user(&state.api, req).await {
         Ok(res) => Json(res).into_response(),
         Err(e) => Json(serde_json::json!({
             "code": -1,
@@ -642,6 +673,7 @@ pub async fn start_server() -> anyhow::Result<()> {
         .route("/api/search/notes", post(search_notes_handler))
         .route("/api/search/onebox", post(search_onebox_handler))
         .route("/api/search/filter", get(search_filter_handler))
+        .route("/api/search/usersearch", post(search_user_handler))
         .route("/api/user/me", get(user_me_handler))
         .route("/api/feed/homefeed/recommend", post(homefeed_recommend_handler))
         .route("/api/feed/homefeed/:category", post(api::feed::category::get_category_feed))

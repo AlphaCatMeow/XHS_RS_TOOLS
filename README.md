@@ -74,8 +74,8 @@ cargo run
 | 版本 | 日期 | 更新内容 | 
 | :--- | :--- | :--- | 
 | **v1.4.0** | 2026-01-17 | **Search API Suite 完整实现** | 
-| | | - 🔍 **搜索全家桶**: 新增 `search/notes`, `recommend`, `onebox`, `filter` | 
-| | | - 📝 **Swagger 更新**: 新增 Search 分组，完善 Request/Response 模型 | 
+| | | - 🔍 **搜索全家桶**: 新增 `search/notes`, `recommend`, `onebox`, `filter` ,`usersearch` | 
+| | | - 📝 **Swagger 更新**: 新增 Search 聚合分组，完善 Request/Response 模型 | 
 | **v1.3.1** | 2026-01-17 | **纯 Rust 登录流程重构** | 
 | | | - 🚀 **登录 API 化**: 新增 `/api/auth/guest-init`、`/qrcode/create`、`/qrcode/status` | 
 | | | - 🔧 **Playwright 职责简化**: 仅用于获取初始访客 Cookie，无需浏览器子进程 | 
@@ -118,6 +118,7 @@ python client_demo.py
 | **Search** | `/api/search/notes` | ✅ | **[NEW]** 笔记搜索 (支持筛选) |
 | **Search** | `/api/search/recommend` | ✅ | **[NEW]** 搜索建议 |
 | **Search** | `/api/search/onebox` | ✅ | **[NEW]** OneBox 聚合 |
+| **Search** | `/api/search/usersearch` | ✅ | **[NEW]** 用户搜索 |
 | **Search** | `/api/search/filter` | ✅ | **[NEW]** 筛选器元数据 |
 | **Feed** | `/api/feed/homefeed/{category}` | ✅ | 10 个垂直频道 |
 | **Notification** | `/api/notification/mentions` | ✅ | 获取评论和 @ 通知 |

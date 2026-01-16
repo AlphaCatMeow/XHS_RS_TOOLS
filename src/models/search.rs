@@ -208,3 +208,64 @@ pub struct FilterTag {
     #[serde(default)]
     pub show_type: Option<i32>,
 }
+
+// =================== Search User ===================
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct SearchUserRequestBody {
+    pub search_user_request: SearchUserRequest,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[schema(example = json!({
+    "keyword": "搜索关键词",
+    "search_id": "search_id_example",
+    "page": 1,
+    "page_size": 15,
+    "biz_type": "web_search_user",
+    "request_id": "request_id_example"
+}))]
+pub struct SearchUserRequest {
+    pub keyword: String,
+    pub search_id: Option<String>,
+    #[serde(default = "default_page")]
+    pub page: i32,
+    #[serde(default = "default_page_size_15")]
+    pub page_size: i32,
+    #[serde(default = "default_biz_type_user")]
+    pub biz_type: String,
+    pub request_id: Option<String>,
+}
+
+fn default_page_size_15() -> i32 { 15 }
+fn default_biz_type_user() -> String { "web_search_user".to_string() }
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct SearchUserResponse {
+    pub code: i32,
+    pub success: bool,
+    #[serde(default)]
+    pub msg: Option<String>,
+    #[serde(default)]
+    pub data: Option<SearchUserData>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct SearchUserData {
+    pub has_more: bool,
+    #[serde(default)]
+    pub users: Vec<SearchUserItem>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct SearchUserItem {
+    pub id: String,
+    pub name: String,
+    pub image: Option<String>,
+    #[serde(rename = "fans")]
+    pub fan_count: Option<String>, 
+    pub note_count: Option<i32>,
+    pub desc: Option<String>,
+    pub red_id: Option<String>,
+    pub link: Option<String>,
+}

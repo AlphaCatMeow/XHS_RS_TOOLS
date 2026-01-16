@@ -407,6 +407,40 @@ def test_search_filter(search_id):
         print(f"    ❌ Error: {e}")
 
 
+def test_search_user(search_id):
+    """测试用户搜索 API"""
+    if not search_id: return
+    print("\n[API] POST /api/search/usersearch (搜索用户)")
+    try:
+        payload = {
+            "keyword": "台州招聘",
+            "search_id": search_id,
+            "page": 1,
+            "page_size": 15,
+            "biz_type": "web_search_user"
+            # request_id managed by server
+        }
+        data_json = json.dumps(payload).encode('utf-8')
+        req = urllib.request.Request(
+            f"{BASE_URL}/api/search/usersearch", 
+            data=data_json, 
+            headers={'Content-Type': 'application/json'}
+        )
+        with urllib.request.urlopen(req, timeout=10) as response:
+            data = json.loads(response.read().decode('utf-8'))
+        
+        if data.get("success"):
+            users = data.get("data", {}).get("users", [])
+            print(f"    ✅ 获取用户列表成功 (Count: {len(users)})")
+            if users:
+                user = users[0]
+                print(f"       [1] {user.get('name')} (红薯号: {user.get('red_id')})")
+        else:
+            print(f"    ❌ {data.get('msg')}")
+    except Exception as e:
+        print(f"    ❌ Error: {e}")
+
+
 def test_all_apis():
     """测试所有 API"""
     print("\n" + "=" * 50)
@@ -418,6 +452,7 @@ def test_all_apis():
     test_search_recommend()
     sid = test_search_notes()
     test_search_onebox(sid)
+    test_search_user(sid)
     test_search_filter(sid)
     test_homefeed()
     test_notifications()
