@@ -7,7 +7,7 @@
 use std::process::{Child, Command, Stdio};
 use std::sync::Mutex;
 use std::path::PathBuf;
-use tracing::{info, warn, error};
+use tracing::{info, warn};
 
 /// Agent 进程管理器
 pub struct AgentManager {

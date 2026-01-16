@@ -203,15 +203,14 @@ impl XhsApiClient {
             let uri = &url[uri_start..];
             
             // 解析 path 和 params
-            let (path, params) = parse_uri_with_params(uri);
+            // let (path, params) = parse_uri_with_params(uri);
             
             // 尝试纯算法签名
             match self.get_algo_signature("GET", uri, &cookie_str, None).await {
                 Ok(signature) => {
-                    let base_url = format!("https://edith.xiaohongshu.com{}", path);
-                    tracing::info!("[XhsApiClient] GET {} using ALGO (path: {})", endpoint_key, path);
-                    let response = self.build_get_request_algo(&base_url, &signature, &cookie_str)
-                        .query(&params)
+                    // Use URL directly to avoid double encoding of query params by reqwest
+                    tracing::info!("[XhsApiClient] GET {} using ALGO (url: {})", endpoint_key, url);
+                    let response = self.build_get_request_algo(url, &signature, &cookie_str)
                         .send()
                         .await?;
                     return self.handle_response(response, endpoint_key).await;

@@ -1,5 +1,5 @@
 use axum::{
-    extract::State,
+    extract::{State, Query},
     response::IntoResponse,
     routing::{get, post},
     Json, Router,
@@ -15,7 +15,11 @@ use crate::{
     client::XhsClient,
     models::{
         feed::{HomefeedRequest, HomefeedResponse, HomefeedData, HomefeedItem, NoteCard, NoteUser, NoteCover, CoverImageInfo, InteractInfo, NoteVideo, VideoCapa},
-        search::{QueryTrendingResponse, QueryTrendingData, TrendingQuery, TrendingHintWord},
+        search::{QueryTrendingResponse, QueryTrendingData, TrendingQuery, TrendingHintWord, SearchRecommendResponse, SearchRecommendData, SugItem,
+            SearchNotesRequest, SearchNotesResponse, SearchNotesData, SearchFilterOption,
+            SearchOneboxRequest, SearchOneboxResponse,
+            SearchFilterResponse, SearchFilterData, FilterItem, FilterTag
+        },
         user::{UserMeResponse, UserInfo},
     },
     api::notification::{
@@ -30,6 +34,10 @@ use crate::{
 #[openapi(
     paths(
         query_trending_handler,
+        search_recommend_handler,
+        search_notes_handler,
+        search_onebox_handler,
+        search_filter_handler,
         user_me_handler,
         guest_init_handler,
         create_qrcode_handler,
@@ -44,6 +52,10 @@ use crate::{
         schemas(
             GuestInitResponse, CreateQrCodeResponse, PollStatusResponse, QrCodeStatusData, LoginInfo,
             QueryTrendingResponse, QueryTrendingData, TrendingQuery, TrendingHintWord,
+            SearchRecommendResponse, SearchRecommendData, SugItem,
+            SearchNotesRequest, SearchNotesResponse, SearchNotesData, SearchFilterOption,
+            SearchOneboxRequest, SearchOneboxResponse,
+            SearchFilterResponse, SearchFilterData, FilterItem, FilterTag,
             UserMeResponse, UserInfo,
             MentionsResponse, MentionsData,
             ConnectionsResponse, ConnectionsData,
@@ -55,7 +67,8 @@ use crate::{
         (name = "xhs", description = "小红书 API 接口"),
         (name = "auth", description = "认证相关"),
         (name = "Feed", description = "主页发现频道：recommend(推荐)、fashion(穿搭)、food(美食)、cosmetics(彩妆)、movie_and_tv(影视)、career(职场)、love(情感)、household_product(家居)、gaming(游戏)、travel(旅行)、fitness(健身)"),
-        (name = "Note", description = "笔记相关接口")
+        (name = "Note", description = "笔记相关接口"),
+        (name = "Search", description = "搜索相关接口: 联想词、笔记搜索、Onebox、筛选器")
     )
 )]
 struct ApiDoc;
@@ -86,6 +99,133 @@ async fn query_trending_handler(
     State(state): State<Arc<AppState>>,
 ) -> impl IntoResponse {
     match api::search::query_trending(&state.api).await {
+        Ok(res) => Json(res).into_response(),
+        Err(e) => Json(serde_json::json!({
+            "code": -1,
+            "success": false,
+            "msg": e.to_string(),
+            "data": null
+        })).into_response(),
+    }
+}
+
+#[derive(serde::Deserialize, utoipa::IntoParams)]
+struct SearchParams {
+    keyword: String,
+}
+
+/// 搜索推荐 (联想词)
+/// 
+/// 根据关键词获取搜索建议
+#[utoipa::path(
+    get,
+    path = "/api/search/recommend",
+    tag = "Search",
+    summary = "搜索推荐",
+    params(
+        SearchParams
+    ),
+    responses(
+        (status = 200, description = "搜索推荐列表", body = SearchRecommendResponse)
+    )
+)]
+async fn search_recommend_handler(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<SearchParams>,
+) -> impl IntoResponse {
+    match api::search::recommend_search(&state.api, &params.keyword).await {
+        Ok(res) => Json(res).into_response(),
+        Err(e) => Json(serde_json::json!({
+            "code": -1,
+            "success": false,
+            "msg": e.to_string(),
+            "data": null
+        })).into_response(),
+    }
+}
+
+/// 搜索笔记
+/// 
+/// 获取关键词搜索的笔记列表
+#[utoipa::path(
+    post,
+    path = "/api/search/notes",
+    tag = "Search",
+    summary = "搜索笔记",
+    request_body = SearchNotesRequest,
+    responses(
+        (status = 200, description = "笔记列表", body = SearchNotesResponse)
+    )
+)]
+async fn search_notes_handler(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<SearchNotesRequest>,
+) -> impl IntoResponse {
+    match api::search::search_notes(&state.api, req).await {
+        Ok(res) => Json(res).into_response(),
+        Err(e) => Json(serde_json::json!({
+            "code": -1,
+            "success": false,
+            "msg": e.to_string(),
+            "data": null
+        })).into_response(),
+    }
+}
+
+/// 搜索 OneBox
+/// 
+/// 获取搜索聚合信息
+#[utoipa::path(
+    post,
+    path = "/api/search/onebox",
+    tag = "Search",
+    summary = "搜索 OneBox",
+    request_body = SearchOneboxRequest,
+    responses(
+        (status = 200, description = "OneBox 结果", body = SearchOneboxResponse)
+    )
+)]
+async fn search_onebox_handler(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<SearchOneboxRequest>,
+) -> impl IntoResponse {
+    match api::search::search_onebox(&state.api, req).await {
+        Ok(res) => Json(res).into_response(),
+        Err(e) => Json(serde_json::json!({
+            "code": -1,
+            "success": false,
+            "msg": e.to_string(),
+            "data": null
+        })).into_response(),
+    }
+}
+
+#[derive(serde::Deserialize, utoipa::IntoParams)]
+struct SearchFilterParams {
+    keyword: String,
+    search_id: String,
+}
+
+/// 搜索筛选器
+/// 
+/// 获取搜索筛选选项
+#[utoipa::path(
+    get,
+    path = "/api/search/filter",
+    tag = "Search",
+    summary = "搜索筛选器",
+    params(
+        SearchFilterParams
+    ),
+    responses(
+        (status = 200, description = "筛选选项", body = SearchFilterResponse)
+    )
+)]
+async fn search_filter_handler(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<SearchFilterParams>,
+) -> impl IntoResponse {
+    match api::search::search_filter(&state.api, &params.keyword, &params.search_id).await {
         Ok(res) => Json(res).into_response(),
         Err(e) => Json(serde_json::json!({
             "code": -1,
@@ -498,6 +638,10 @@ pub async fn start_server() -> anyhow::Result<()> {
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .route("/api/search/trending", get(query_trending_handler))
+        .route("/api/search/recommend", get(search_recommend_handler))
+        .route("/api/search/notes", post(search_notes_handler))
+        .route("/api/search/onebox", post(search_onebox_handler))
+        .route("/api/search/filter", get(search_filter_handler))
         .route("/api/user/me", get(user_me_handler))
         .route("/api/feed/homefeed/recommend", post(homefeed_recommend_handler))
         .route("/api/feed/homefeed/:category", post(api::feed::category::get_category_feed))

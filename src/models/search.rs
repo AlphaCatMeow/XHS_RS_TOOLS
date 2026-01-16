@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+use serde_json::json;
+use super::feed::HomefeedItem;
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct QueryTrendingResponse {
@@ -37,4 +39,172 @@ pub struct TrendingHintWord {
     pub hint_word_request_id: String,
     pub title: String,
     pub desc: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[schema(example = json!({
+    "code": 0,
+    "success": true,
+    "msg": "success",
+    "data": {
+        "sug_items": [
+            { "type": "history", "text": "杭州" },
+            { "type": "sug", "text": "杭州旅游攻略" }
+        ]
+    }
+}))]
+pub struct SearchRecommendResponse {
+    pub code: i32,
+    pub success: bool,
+    #[serde(default)]
+    pub msg: Option<String>,
+    #[serde(default)]
+    pub data: Option<SearchRecommendData>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct SearchRecommendData {
+    pub search_cpl_id: Option<String>,
+    pub word_request_id: Option<String>,
+    #[serde(default)]
+    pub sug_items: Vec<SugItem>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct SugItem {
+    #[serde(rename = "type")]
+    pub item_type: String,
+    pub text: String,
+    pub search_type: Option<String>,
+}
+
+// =================== Search Notes ===================
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[schema(example = json!({
+    "keyword": "搜索关键词",
+    "page": 1,
+    "page_size": 20,
+    "sort": "general",
+    "note_type": 0,
+    "search_id": "search_id_example",
+    "filters": [],
+    "geo": "",
+    "image_formats": ["jpg", "webp", "avif"]
+}))]
+pub struct SearchNotesRequest {
+    pub keyword: String,
+    #[serde(default = "default_page")]
+    pub page: i32,
+    #[serde(default = "default_page_size")]
+    pub page_size: i32,
+    #[serde(default = "default_sort")]
+    pub sort: String,
+    /// 笔记类型: 0=综合(默认), 1=图文, 2=视频
+    #[serde(default)]
+    pub note_type: i32,
+    #[serde(default)]
+    pub search_id: Option<String>,
+    /// 筛选条件
+    /// 
+    /// 对应 `/api/search/filter` 返回的 filter items.
+    /// - type: 对应 filter item 的 id (如 "sort_type", "filter_note_type")
+    /// - tags: 对应选中 tag 的 id (如 "general", "video_note")
+    #[serde(default)]
+    pub filters: Vec<SearchFilterOption>,
+    #[serde(default)]
+    pub geo: String,
+    #[serde(default = "default_image_formats")]
+    pub image_formats: Vec<String>,
+}
+
+fn default_page() -> i32 { 1 }
+fn default_page_size() -> i32 { 20 }
+fn default_sort() -> String { "general".to_string() }
+fn default_image_formats() -> Vec<String> { vec!["jpg".to_string(), "webp".to_string(), "avif".to_string()] }
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct SearchFilterOption {
+    pub tags: Vec<String>,
+    #[serde(rename = "type")]
+    pub filter_type: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct SearchNotesResponse {
+    pub code: i32,
+    pub success: bool,
+    #[serde(default)]
+    pub msg: Option<String>,
+    #[serde(default)]
+    pub data: Option<SearchNotesData>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct SearchNotesData {
+    pub has_more: bool,
+    #[serde(default)]
+    pub items: Vec<HomefeedItem>,
+}
+
+// =================== Search OneBox ===================
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[schema(example = json!({
+    "keyword": "牢A斩杀线",
+    "search_id": "demo_sid_1234567890",
+    "biz_type": "web_search_user",
+    "request_id": "1234567890-1234567890123"
+}))]
+pub struct SearchOneboxRequest {
+    pub keyword: String,
+    pub search_id: String,
+    pub biz_type: String,
+    pub request_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct SearchOneboxResponse {
+    pub code: i32,
+    pub success: bool,
+    #[serde(default)]
+    pub msg: Option<String>,
+    #[serde(default)]
+    pub data: Option<serde_json::Value>, 
+}
+
+// =================== Search Filter ===================
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct SearchFilterResponse {
+    pub code: i32,
+    pub success: bool,
+    #[serde(default)]
+    pub msg: Option<String>,
+    #[serde(default)]
+    pub data: Option<SearchFilterData>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct SearchFilterData {
+    #[serde(default)]
+    pub filters: Vec<FilterItem>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct FilterItem {
+    #[serde(rename = "type")]
+    pub filter_type: String,
+    pub name: String,
+    pub id: String,
+    #[serde(default)]
+    pub filter_tags: Vec<FilterTag>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct FilterTag {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub show_type: Option<i32>,
 }
