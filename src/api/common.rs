@@ -183,6 +183,44 @@ impl XhsApiClient {
         }
     }
 
+    /// 执行带动态查询参数的 GET 请求（纯算法签名）
+    /// 
+    /// 用于需要动态构造查询参数的接口（如 notification）
+    /// 使用与 get 方法相同的 path/params 分离逻辑
+    /// 
+    /// # Arguments
+    /// * `uri` - API 完整路径（含查询参数，如 "/api/sns/web/v1/you/likes?num=20&cursor="）
+    /// 
+    /// # Returns
+    /// 响应文本内容
+    pub async fn get_with_query(&self, uri: &str) -> Result<String> {
+        let credentials = self.auth.try_get_credentials().await?
+            .ok_or_else(|| anyhow!("Not logged in. Please call /api/auth/login-session first."))?;
+        
+        let cookie_str = credentials.cookie_string();
+        
+        // 解析 URI，分离 path 和 query params（与 get 方法相同逻辑）
+        let (path, params) = parse_uri_with_params(uri);
+        let base_url = format!("https://edith.xiaohongshu.com{}", path);
+        
+        // 尝试纯算法签名
+        match self.get_algo_signature("GET", uri, &cookie_str, None).await {
+            Ok(signature) => {
+                tracing::info!("[XhsApiClient] GET {} using ALGO (path: {}, params: {:?})", uri, path, params);
+                // 使用 .query() 传递参数，保持与 get 方法一致
+                let response = self.build_get_request_algo(&base_url, &signature, &cookie_str)
+                    .query(&params)
+                    .send()
+                    .await?;
+                self.handle_response(response, uri).await
+            }
+            Err(algo_err) => {
+                tracing::warn!("[XhsApiClient] Algo failed for {}: {}", uri, algo_err);
+                Err(algo_err)
+            }
+        }
+    }
+
     /// 执行带自定义 URL 的 GET 请求（纯算法优先）
     /// 
     /// 用于需要动态构造 URL 参数的接口（如 note_page）

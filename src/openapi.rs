@@ -49,7 +49,6 @@ use crate::{
         notification_handlers::mentions_handler,
         notification_handlers::connections_handler,
         notification_handlers::likes_handler,
-        feed_handlers::homefeed_recommend_handler,
     ),
     components(
         schemas(

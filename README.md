@@ -74,6 +74,11 @@ python client_demo.py
 
 | 版本 | 日期 | 更新内容 | 
 | :--- | :--- | :--- | 
+| **v1.6.2** | 2026-01-20 | **Notification 分页支持 & Note Comment 分页文档** | 
+| | | - 🔧 **Notification 分页**: `mentions`、`connections`、`likes` 三个接口支持 `num`/`cursor` 分页参数 | 
+| | | - 📄 **分页指南**: 新增 [comment_pagination.md](doc/comment_pagination.md)、[likes_pagination.md](doc/likes_pagination.md)、[mentions_pagination.md](doc/mentions_pagination.md)、[connections_pagination.md](doc/connections_pagination.md) | 
+| | | - 🔧 **406 修复**: 新增 `get_with_query` 方法，修复 Notification 接口签名问题 | 
+| | | - 📝 **Swagger 精简**: 移除冗余的 `/api/feed/homefeed/recommend` 端点 | 
 | **v1.6.1** | 2026-01-20 | **Search Notes/Onebox 461 报错修复 & 分页指南** | 
 | | | - 🔧 **461 修复**: 移除多余 headers、调整 payload 字段顺序、修复 session 关联 | 
 | | | - 📄 **分页指南**: 新增 [search_pagination.md](doc/search_pagination.md)、[usersearch_pagination.md](doc/usersearch_pagination.md) | 
@@ -121,10 +126,10 @@ python client_demo.py
 | **Search** | `/api/search/usersearch` | ✅ |  用户搜索 ([📖 分页指南](doc/usersearch_pagination.md)) |
 | **Search** | `/api/search/filter` | ✅ |  筛选器元数据 |
 | **Feed** | `/api/feed/homefeed/{category}` | ✅ | 11 个垂直频道 ([📖 分页指南](doc/homefeed_pagination.md)) |
-| **Notification** | `/api/notification/mentions` | ✅ | 获取评论和 @ 通知 |
-| **Notification** | `/api/notification/connections` | ✅ | 获取新增关注通知 |
-| **Notification** | `/api/notification/likes` | ✅ | 获取赞和收藏通知 |
-| **Note** | `/api/note/page` | ✅ | 获取笔记评论列表 |
+| **Notification** | `/api/notification/mentions` | ✅ | 获取评论和 @ 通知 ([📖 分页指南](doc/mentions_pagination.md)) |
+| **Notification** | `/api/notification/connections` | ✅ | 获取新增关注通知 ([📖 分页指南](doc/connections_pagination.md)) |
+| **Notification** | `/api/notification/likes` | ✅ | 获取赞和收藏通知 ([📖 分页指南](doc/likes_pagination.md)) |
+| **Note** | `/api/note/page` | ✅ | 获取笔记评论列表 ([📖 分页指南](doc/comment_pagination.md)) |
 | **Note** | `/api/note/detail` | ✅ |  获取笔记完整内容 |
 
 ## 📚 接口文档 (API Docs)

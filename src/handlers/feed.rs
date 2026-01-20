@@ -17,19 +17,10 @@ use crate::models::feed::{HomefeedRequest, HomefeedResponse};
 // Handlers
 // ============================================================================
 
-/// 页面-主页发现-推荐
+/// 页面-主页发现-推荐 (内部接口)
 /// 
+/// 此接口从属于 /api/feed/homefeed/{category}，不单独在 Swagger 中显示
 /// 获取小红书主页推荐内容流
-#[utoipa::path(
-    post,
-    path = "/api/feed/homefeed/recommend",
-    tag = "xhs",
-    summary = "页面-主页发现-推荐",
-    request_body = HomefeedRequest,
-    responses(
-        (status = 200, description = "主页推荐内容", body = HomefeedResponse)
-    )
-)]
 pub async fn homefeed_recommend_handler(
     State(state): State<Arc<AppState>>,
 ) -> impl IntoResponse {
