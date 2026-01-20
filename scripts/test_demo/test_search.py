@@ -31,7 +31,7 @@ def test_search_recommend():
     """测试搜索推荐 API"""
     print("\n[API] GET /api/search/recommend (搜索推荐)")
     try:
-        keyword = "台州"
+        keyword = "湖州"
         encoded_kw = urllib.parse.quote(keyword)
         req = urllib.request.Request(f"{BASE_URL}/api/search/recommend?keyword={encoded_kw}")
         with urllib.request.urlopen(req, timeout=10) as response:
@@ -49,20 +49,27 @@ def test_search_recommend():
 
 
 def test_search_notes() -> str:
-    """测试搜索笔记 API"""
+    """测试搜索笔记 API，返回服务端生成的 search_id 供后续请求使用"""
     print("\n[API] POST /api/search/notes (搜索笔记)")
-    search_id = f"demo_sid_{int(time.time())}"
+    search_id = ""  # 由服务端生成
     try:
         payload = {
-            "keyword": "台州招聘",
+            "keyword": "湖州旅游",
             "page": 1,
-            "page_size": 10,
+            "page_size": 20,
             "sort": "general",
             "note_type": 0,
-            "search_id": search_id,
-            "filters": [],
+            # 不发送 search_id，让 Rust 服务端生成
+            "ext_flags": [],
+            "filters": [
+                {"tags": ["general"], "type": "sort_type"},
+                {"tags": ["不限"], "type": "filter_note_type"},
+                {"tags": ["不限"], "type": "filter_note_time"},
+                {"tags": ["不限"], "type": "filter_note_range"},
+                {"tags": ["不限"], "type": "filter_pos_distance"}
+            ],
             "geo": "",
-            "image_formats": ["jpg", "webp"]
+            "image_formats": ["jpg", "webp", "avif"]
         }
         data_json = json.dumps(payload).encode('utf-8')
         req = urllib.request.Request(
@@ -75,6 +82,8 @@ def test_search_notes() -> str:
         
         if data.get("success"):
             items = data.get("data", {}).get("items", [])
+            # 从响应中提取服务端生成的 search_id
+            search_id = data.get("data", {}).get("search_id", "")
             print_success(f"获取搜索笔记成功 (ID: {search_id}, 结果: {len(items)})")
         else:
             print_warning(data.get("msg", "无数据"))
@@ -83,14 +92,16 @@ def test_search_notes() -> str:
     return search_id
 
 
+
 def test_search_onebox(search_id: str):
     """测试 OneBox API"""
-    if not search_id:
-        return
     print("\n[API] POST /api/search/onebox")
+    if not search_id:
+        print_warning("跳过 (无 search_id，需先成功调用 search/notes)")
+        return
     try:
         payload = {
-            "keyword": "台州招聘",
+            "keyword": "湖州旅游",
             "search_id": search_id,
             "biz_type": "web_search_user"
         }
@@ -115,7 +126,7 @@ def test_search_user(search_id: str):
     print("\n[API] POST /api/search/usersearch (搜索用户)")
     try:
         payload = {
-            "keyword": "台州招聘",
+            "keyword": "湖州旅游",
             "search_id": search_id,
             "page": 1,
             "page_size": 15,
@@ -148,7 +159,7 @@ def test_search_filter(search_id: str):
         return
     print("\n[API] GET /api/search/filter")
     try:
-        keyword = urllib.parse.quote("台州招聘")
+        keyword = urllib.parse.quote("湖州旅游")
         sid = urllib.parse.quote(search_id)
         url = f"{BASE_URL}/api/search/filter?keyword={keyword}&search_id={sid}"
         with urllib.request.urlopen(url, timeout=10) as response:

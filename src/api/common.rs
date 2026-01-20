@@ -364,6 +364,9 @@ impl XhsApiClient {
         let url = format!("https://edith.xiaohongshu.com{}", uri);
         let body = serde_json::to_string(&payload)?;
         
+        // DEBUG: 输出实际发送的 payload
+        tracing::info!("[XhsApiClient] POST {} payload: {}", uri, body);
+        
         // 尝试纯算法签名
         match self.get_algo_signature("POST", uri, &cookie_str, Some(payload)).await {
             Ok(signature) => {
@@ -472,7 +475,6 @@ impl XhsApiClient {
             .header("x-s-common", &signature.x_s_common)
             .header("x-b3-traceid", &signature.x_b3_traceid)
             .header("x-xray-traceid", &signature.x_xray_traceid)
-            .header("xy-direction", "98")
             .header("cookie", cookie)
             .body(body)
     }
@@ -536,18 +538,42 @@ impl XhsApiClient {
             .body(body)
     }
 
-    /// 处理响应（日志 + 406 警告）
+    /// 处理响应（日志 + 错误状态码处理）
     async fn handle_response(&self, response: reqwest::Response, endpoint_key: &str) -> Result<String> {
         let status = response.status();
         let text = response.text().await?;
         
         tracing::info!("[XhsApiClient] {} Response [{}]: {} chars", endpoint_key, status, text.len());
         
-        if status.as_u16() == 406 {
-            tracing::warn!(
-                "[XhsApiClient] {} received 406 - signature may be invalid (cookies are still valid)",
-                endpoint_key
-            );
+        // 处理常见错误状态码
+        match status.as_u16() {
+            406 => {
+                tracing::warn!(
+                    "[XhsApiClient] {} received 406 - signature may be invalid (cookies are still valid)",
+                    endpoint_key
+                );
+            }
+            461 => {
+                tracing::warn!(
+                    "[XhsApiClient] {} received 461 - XHS rate limit or risk control triggered",
+                    endpoint_key
+                );
+                return Err(anyhow!(
+                    "XHS 风控触发 (461): 请稍后重试或更换关键词。Response: {}",
+                    text
+                ));
+            }
+            status_code if status_code >= 400 => {
+                tracing::warn!(
+                    "[XhsApiClient] {} received {} - request failed",
+                    endpoint_key, status_code
+                );
+                return Err(anyhow!(
+                    "XHS API 错误 ({}): {}",
+                    status_code, text
+                ));
+            }
+            _ => {}
         }
         
         Ok(text)

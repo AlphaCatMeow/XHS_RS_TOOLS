@@ -88,7 +88,14 @@ pub struct SugItem {
     "sort": "general",
     "note_type": 0,
     "search_id": "search_id_example",
-    "filters": [],
+    "ext_flags": [],
+    "filters": [
+        {"tags": ["general"], "type": "sort_type"},
+        {"tags": ["不限"], "type": "filter_note_type"},
+        {"tags": ["不限"], "type": "filter_note_time"},
+        {"tags": ["不限"], "type": "filter_note_range"},
+        {"tags": ["不限"], "type": "filter_pos_distance"}
+    ],
     "geo": "",
     "image_formats": ["jpg", "webp", "avif"]
 }))]
@@ -98,19 +105,20 @@ pub struct SearchNotesRequest {
     pub page: i32,
     #[serde(default = "default_page_size")]
     pub page_size: i32,
+    #[serde(default)]
+    pub search_id: Option<String>,
     #[serde(default = "default_sort")]
     pub sort: String,
     /// 笔记类型: 0=综合(默认), 1=图文, 2=视频
     #[serde(default)]
     pub note_type: i32,
+    /// 扩展筛选标志 (通常为空数组)
     #[serde(default)]
-    pub search_id: Option<String>,
-    /// 筛选条件
+    pub ext_flags: Vec<serde_json::Value>,
+    /// 筛选条件 (必需字段)
     /// 
-    /// 对应 `/api/search/filter` 返回的 filter items.
-    /// - type: 对应 filter item 的 id (如 "sort_type", "filter_note_type")
-    /// - tags: 对应选中 tag 的 id (如 "general", "video_note")
-    #[serde(default)]
+    /// 包含排序和筛选类型，使用默认值即可
+    #[serde(default = "default_filters")]
     pub filters: Vec<SearchFilterOption>,
     #[serde(default)]
     pub geo: String,
@@ -122,6 +130,15 @@ fn default_page() -> i32 { 1 }
 fn default_page_size() -> i32 { 20 }
 fn default_sort() -> String { "general".to_string() }
 fn default_image_formats() -> Vec<String> { vec!["jpg".to_string(), "webp".to_string(), "avif".to_string()] }
+fn default_filters() -> Vec<SearchFilterOption> {
+    vec![
+        SearchFilterOption { tags: vec!["general".to_string()], filter_type: "sort_type".to_string() },
+        SearchFilterOption { tags: vec!["不限".to_string()], filter_type: "filter_note_type".to_string() },
+        SearchFilterOption { tags: vec!["不限".to_string()], filter_type: "filter_note_time".to_string() },
+        SearchFilterOption { tags: vec!["不限".to_string()], filter_type: "filter_note_range".to_string() },
+        SearchFilterOption { tags: vec!["不限".to_string()], filter_type: "filter_pos_distance".to_string() },
+    ]
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct SearchFilterOption {
@@ -142,6 +159,9 @@ pub struct SearchNotesResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct SearchNotesData {
+    /// 搜索会话ID (用于关联 onebox 等后续请求)
+    #[serde(default)]
+    pub search_id: Option<String>,
     pub has_more: bool,
     #[serde(default)]
     pub items: Vec<HomefeedItem>,

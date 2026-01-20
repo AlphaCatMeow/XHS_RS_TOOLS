@@ -74,7 +74,10 @@ python client_demo.py
 
 | 版本 | 日期 | 更新内容 | 
 | :--- | :--- | :--- | 
-| **v1.6.0** | 2026-01-20 | **Homefeed 提交分页参数规则（payload）补充** | 
+| **v1.6.1** | 2026-01-20 | **Search Notes/Onebox 461 报错修复 & 分页指南** | 
+| | | - 🔧 **461 修复**: 移除多余 headers、调整 payload 字段顺序、修复 session 关联 | 
+| | | - � **分页指南**: 新增 [search_pagination.md](doc/search_pagination.md)、[usersearch_pagination.md](doc/usersearch_pagination.md) | 
+| **v1.6.0** | 2026-01-20 | **Homefeed 分页参数规则补充** | 
 | | | - 📄 **分页文档**: 新增 `doc/homefeed_pagination.md` 详细说明分页机制 | 
 | | | - 🔧 **参数更新**: `homefeed` 接口支持用户自定义 `cursor_score`、`note_index` 等分页参数 | 
 | | | - 📄 **测试更新**: 测试用例重构，更新测试用例client_demo.py，选取【穿搭】接口进行分页参数请求测试 | 
@@ -112,10 +115,10 @@ python client_demo.py
 | **Auth** | `/api/auth/qrcode/status` | ✅ | 轮询登录状态 |
 | **User** | `/api/user/me` | ✅ | 获取当前用户信息 |
 | **Search** | `/api/search/trending` | ✅ | 获取热搜推荐词 |
-| **Search** | `/api/search/notes` | ✅ | 笔记搜索 (支持筛选) |
+| **Search** | `/api/search/notes` | ✅ |  笔记搜索 ([📖 分页指南](doc/search_pagination.md)) |
 | **Search** | `/api/search/recommend` | ✅ |  搜索建议 |
 | **Search** | `/api/search/onebox` | ✅ |  OneBox 聚合 |
-| **Search** | `/api/search/usersearch` | ✅ |  用户搜索 |
+| **Search** | `/api/search/usersearch` | ✅ |  用户搜索 ([📖 分页指南](doc/usersearch_pagination.md)) |
 | **Search** | `/api/search/filter` | ✅ |  筛选器元数据 |
 | **Feed** | `/api/feed/homefeed/{category}` | ✅ | 11 个垂直频道 ([📖 分页指南](doc/homefeed_pagination.md)) |
 | **Notification** | `/api/notification/mentions` | ✅ | 获取评论和 @ 通知 |

@@ -26,11 +26,32 @@ pub async fn recommend_search(api: &XhsApiClient, keyword: &str) -> Result<Searc
     Ok(result)
 }
 
-/// 生成 Search ID (22位随机小写字母数字)
+/// 生成 Search ID (格式: xxx@xxx)
+/// 
+/// 用于 search/notes 接口，search_id 由两部分组成，用 @ 连接
 pub fn generate_search_id() -> String {
-    rand::thread_rng()
+    let part1: String = rand::thread_rng()
         .sample_iter(&Alphanumeric)
         .take(22)
+        .map(char::from)
+        .collect::<String>()
+        .to_lowercase();
+    let part2: String = rand::thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(22)
+        .map(char::from)
+        .collect::<String>()
+        .to_lowercase();
+    format!("{}@{}", part1, part2)
+}
+
+/// 生成简单 Search ID (格式: xxx, 21位)
+/// 
+/// 用于 search/notes, search/onebox 和 search/usersearch 接口
+fn generate_simple_search_id() -> String {
+    rand::thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(21)
         .map(char::from)
         .collect::<String>()
         .to_lowercase()
@@ -48,22 +69,36 @@ fn generate_request_id() -> String {
 
 /// 搜索笔记列表
 pub async fn search_notes(api: &XhsApiClient, mut req: SearchNotesRequest) -> Result<SearchNotesResponse> {
-    // 补全 search_id
-    if req.search_id.is_none() {
-        req.search_id = Some(generate_search_id());
+    // 补全 search_id (使用简单格式，21字符)
+    // 如果没有提供或格式无效（如 demo 开头），则自动生成
+    if req.search_id.is_none() || req.search_id.as_ref().map(|s| s.starts_with("demo")).unwrap_or(false) {
+        req.search_id = Some(generate_simple_search_id());
     }
+    let used_search_id = req.search_id.clone();
     
     let path = "/api/sns/web/v1/search/notes";
     let payload = serde_json::to_value(&req)?;
     
     // 使用 post_algo 进行签名和发送
     let text = api.post_algo(path, payload).await?;
-    let result = serde_json::from_str::<SearchNotesResponse>(&text)?;
+    let mut result = serde_json::from_str::<SearchNotesResponse>(&text)?;
+    
+    // 注入 search_id 到响应中，供客户端用于后续请求 (如 onebox)
+    if let Some(ref mut data) = result.data {
+        data.search_id = used_search_id;
+    }
+    
     Ok(result)
 }
 
 /// 搜索 OneBox (聚合结果)
+/// 
+/// 注意：onebox 应使用与 search/notes 相同的 search_id 来关联搜索会话
 pub async fn search_onebox(api: &XhsApiClient, mut req: SearchOneboxRequest) -> Result<SearchOneboxResponse> {
+    // 只在 search_id 为空时才自动生成，保持与 notes 的会话关联
+    if req.search_id.is_empty() {
+        req.search_id = generate_simple_search_id();
+    }
     // 补全 request_id
     if req.request_id.is_none() {
         req.request_id = Some(generate_request_id());
@@ -91,8 +126,9 @@ pub async fn search_filter(api: &XhsApiClient, keyword: &str, search_id: &str) -
 
 /// 搜索用户列表
 pub async fn search_user(api: &XhsApiClient, mut req: SearchUserRequest) -> Result<SearchUserResponse> {
-    if req.search_id.is_none() {
-        req.search_id = Some(generate_search_id());
+    // 补全 search_id (使用简单格式)
+    if req.search_id.is_none() || req.search_id.as_ref().map(|s| s.starts_with("demo")).unwrap_or(false) {
+        req.search_id = Some(generate_simple_search_id());
     }
     if req.request_id.is_none() {
         req.request_id = Some(generate_request_id());
