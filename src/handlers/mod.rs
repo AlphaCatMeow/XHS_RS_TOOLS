@@ -8,6 +8,7 @@ pub mod notification;
 pub mod user;
 pub mod feed;
 pub mod media;
+pub mod creator;
 
 // Re-export all handlers for convenient access
 pub use search::*;
@@ -16,3 +17,4 @@ pub use notification::*;
 pub use user::*;
 pub use feed::*;
 pub use media::*;
+pub use creator::*;

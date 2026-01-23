@@ -161,27 +161,32 @@ def get_driver_executable_path():
     return None
 
 @app.get("/guest-cookies", response_model=GuestCookiesResponse)
-async def get_guest_cookies():
-    """Get guest cookies using undetected-chromedriver"""
+async def get_guest_cookies(target: str = "explore"):
+    """
+    Get guest cookies using undetected-chromedriver
+    
+    Args:
+        target: Target page ("explore" [default], "creator")
+    """
     driver = None
     try:
-        logger.info("[Guest Cookies] Starting UC Driver (Headed)...")
+        logger.info(f"[Guest Cookies] Starting UC Driver (Headed) for target: {target}...")
         options = get_chrome_options()
         
         driver_path = get_driver_executable_path()
         if driver_path:
              logger.info(f"[Guest Cookies] Found chromedriver at {driver_path}, skipping download.")
-             # version_main=None usually triggers auto-check. 
-             # If we provide driver_executable_path, we usually don't need version_main check 
-             # provided the binary matches the browser. 
-             # But UC might still patch.
              driver = uc.Chrome(options=options, driver_executable_path=driver_path, version_main=120) 
         else:
              logger.warning("[Guest Cookies] Chromedriver not found, attempting auto-download...")
              driver = uc.Chrome(options=options, version_main=None) 
         
-        logger.info("[Guest Cookies] Navigating to XHS...")
-        driver.get("https://www.xiaohongshu.com/explore")
+        target_url = "https://www.xiaohongshu.com/explore"
+        if target == "creator":
+            target_url = "https://creator.xiaohongshu.com/login"
+            
+        logger.info(f"[Guest Cookies] Navigating to {target_url}...")
+        driver.get(target_url)
         
         # Wait for page load
         time.sleep(5)

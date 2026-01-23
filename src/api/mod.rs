@@ -6,5 +6,6 @@ pub mod note;
 pub mod notification;
 pub mod search;
 pub mod user;
+pub mod creator;
 
 pub use common::XhsApiClient;

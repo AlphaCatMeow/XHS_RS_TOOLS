@@ -89,6 +89,11 @@ pub async fn start_server() -> anyhow::Result<()> {
         .route("/api/auth/qrcode/create", post(handlers::create_qrcode_handler))
         .route("/api/auth/qrcode/status", get(handlers::poll_qrcode_status_handler))
         
+        // Creator routes
+        .route("/api/creator/auth/guest-init", post(handlers::creator_guest_init_handler))
+        .route("/api/creator/auth/qrcode/create", post(handlers::creator_create_qrcode_handler))
+        .route("/api/creator/auth/qrcode/status", post(handlers::creator_check_qrcode_status))
+        
         // Middleware
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .with_state(state);

@@ -33,7 +33,11 @@ use crate::{
     handlers::user as user_handlers,
     handlers::feed as feed_handlers,
     handlers::media as media_handlers,
+    handlers::creator as creator_handlers,
     api,
+    api::creator::{
+        models::{CreatorQrcodeCreateRequest, CreatorQrcodeStatusRequest}
+    }
 };
 
 #[derive(OpenApi)]
@@ -55,9 +59,11 @@ use crate::{
         notification_handlers::mentions_handler,
         notification_handlers::connections_handler,
         notification_handlers::likes_handler,
-        media_handlers::video_handler,
         media_handlers::images_handler,
         media_handlers::download_handler,
+        creator_handlers::creator_guest_init_handler,
+        creator_handlers::creator_create_qrcode_handler,
+        creator_handlers::creator_check_qrcode_status,
     ),
     components(
         schemas(
@@ -76,12 +82,14 @@ use crate::{
             NoteDetailRequest, NoteDetailResponse,
             VideoRequest, VideoResponse, VideoData, VideoItem,
             ImagesRequest, ImagesResponse, ImagesData, ImageItem,
-            DownloadRequest, DownloadResponse, DownloadData
+            DownloadRequest, DownloadResponse, DownloadData,
+            CreatorQrcodeCreateRequest, CreatorQrcodeStatusRequest
         )
     ),
     tags(
         (name = "xhs", description = "小红书 API 接口"),
-        (name = "auth", description = "认证相关"),
+        (name = "auth", description = "用户认证 (User Auth)"),
+        (name = "Creator", description = "创作者中心认证 (Creator Auth)"),
         (name = "Feed", description = "主页发现频道：recommend(推荐)、fashion(穿搭)、food(美食)、cosmetics(彩妆)、movie_and_tv(影视)、career(职场)、love(情感)、household_product(家居)、gaming(游戏)、travel(旅行)、fitness(健身)"),
         (name = "Note", description = "笔记相关接口：detail(详情)、page(评论)、video(视频地址)"),
         (name = "Media", description = "媒体文件操作：video(视频地址解析)、images(图片地址解析)、download(通用媒体下载)"),

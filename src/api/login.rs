@@ -33,32 +33,33 @@ const QRCODE_STATUS_URL: &str = "https://edith.xiaohongshu.com/api/sns/web/v1/lo
 
 /// Request to Python Agent for signature generation
 #[derive(Debug, Serialize)]
-struct AgentSignRequest {
-    method: String,
-    uri: String,
-    cookies: HashMap<String, String>,
+pub struct AgentSignRequest {
+    pub method: String,
+    pub uri: String,
+    pub cookies: HashMap<String, String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    payload: Option<serde_json::Value>,
+    pub payload: Option<serde_json::Value>,
 }
 
 /// Response from Python Agent signature endpoint
+/// Response from Python Agent signature endpoint
 #[derive(Debug, Deserialize)]
-struct AgentSignResponse {
-    success: bool,
-    x_s: Option<String>,
-    x_t: Option<String>,
-    x_s_common: Option<String>,
-    x_b3_traceid: Option<String>,
-    x_xray_traceid: Option<String>,
-    error: Option<String>,
+pub struct AgentSignResponse {
+    pub success: bool,
+    pub x_s: Option<String>,
+    pub x_t: Option<String>,
+    pub x_s_common: Option<String>,
+    pub x_b3_traceid: Option<String>,
+    pub x_xray_traceid: Option<String>,
+    pub error: Option<String>,
 }
 
 /// Response from Python Agent guest-cookies endpoint
 #[derive(Debug, Deserialize)]
-struct AgentGuestCookiesResponse {
-    success: bool,
-    cookies: Option<HashMap<String, String>>,
-    error: Option<String>,
+pub struct AgentGuestCookiesResponse {
+    pub success: bool,
+    pub cookies: Option<HashMap<String, String>>,
+    pub error: Option<String>,
 }
 
 // ============================================================================

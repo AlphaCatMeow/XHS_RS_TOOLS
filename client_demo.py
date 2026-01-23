@@ -10,6 +10,7 @@ import os
 import urllib.request
 import json
 import time
+import argparse
 
 # Optional: QR code display in terminal
 try:
@@ -36,7 +37,7 @@ from scripts.test_demo.test_media import test_media
 
 
 # ============================================================================
-# Login Flow
+# Login Flow Helpers
 # ============================================================================
 
 def guest_init():
@@ -105,7 +106,6 @@ def poll_qrcode_status(timeout=120):
     while time.time() - start_time < timeout:
         try:
             req = urllib.request.Request(f"{BASE_URL}/api/auth/qrcode/status")
-            # Increase timeout to 60s to allow blocking cookie sync (browser launch takes time)
             with urllib.request.urlopen(req, timeout=60) as response:
                 data = json.loads(response.read().decode('utf-8'))
             
@@ -140,35 +140,175 @@ def poll_qrcode_status(timeout=120):
     return False
 
 
-def login_flow():
-    """完整登录流程"""
-    print("\n" + "=" * 50)
-    print("  开始登录流程 (Pure Rust Architecture)")
-    print("=" * 50)
+def run_login_flow():
+    """Run full user login flow (Init, QR, Poll)"""
+    # Check session first
+    if check_session():
+        print("\n    Session 有效，跳过登录")
+        return True
     
-    if not guest_init():
-        return False
-    if not create_qrcode():
-        return False
-    return poll_qrcode_status()
+    print("\n    需要登录")
+    if guest_init():
+        if create_qrcode():
+            if poll_qrcode_status():
+                return True
+    
+    print("\n❌ 登录失败")
+    return False
 
 
 # ============================================================================
-# Main
+# Creator Login Flow
+# ============================================================================
+
+def test_creator_login():
+    """测试创作者中心登录接口"""
+    print("\n" + "=" * 50)
+    print("  测试创作者中心登录 (Creator Center Login)")
+    print("=" * 50)
+    
+    # Step 1: Creator Guest Init
+    print("\n[1/3] 初始化创作者访客会话 (/api/creator/auth/guest-init)...")
+    cookies = {}
+    try:
+        req = urllib.request.Request(f"{BASE_URL}/api/creator/auth/guest-init", method='POST')
+        with urllib.request.urlopen(req, timeout=60) as response:
+            data = json.loads(response.read().decode('utf-8'))
+            
+        if data.get("success"):
+            cookies = data.get("cookies", {})
+            print(f"    ✅ 获取 ugc 访客 Cookie 成功 (数量: {len(cookies)})")
+            if 'xsecappid' in cookies:
+                print(f"    Context check: xsecappid={cookies['xsecappid']}")
+        else:
+            print(f"    ❌ 失败: {data.get('error')}")
+            return
+    except Exception as e:
+        print(f"    ❌ 错误: {e}")
+        return
+
+    # Step 2: Create Creator QR Code
+    print("\n[2/3] 创建创作者登录二维码 (/api/creator/auth/qrcode/create)...")
+    qr_id = None
+    try:
+        req = urllib.request.Request(f"{BASE_URL}/api/creator/auth/qrcode/create", method='POST')
+        req.add_header('Content-Type', 'application/json')
+        # Fix: Wrap cookies to match CreatorQrcodeCreateRequest schema
+        body = json.dumps({"cookies": cookies}).encode('utf-8')
+        
+        with urllib.request.urlopen(req, data=body, timeout=30) as response:
+            data = json.loads(response.read().decode('utf-8'))
+        
+        if data.get("success"):
+            qr_url = data.get("qr_url")
+            qr_id = data.get("qr_id")
+            
+            print(f"    ✅ 二维码创建成功")
+            print(f"    QR ID: {qr_id}")
+            print(f"    URL: {qr_url}")
+            
+            if HAS_QRCODE and qr_url:
+                print("\n" + "=" * 50)
+                print("  请使用小红书 App 扫描以下二维码 (创作者中心):")
+                print("=" * 50)
+                qr = qrcode.QRCode(border=1)
+                qr.add_data(qr_url)
+                qr.print_ascii(invert=True)
+                print("=" * 50)
+            else:
+                print(f"    扫码链接: {qr_url}")
+                
+            print("\n⚠️  注意: 请立刻手动扫码，并在浏览器 F12 中捕获轮询请求 (status)！")
+            
+        else:
+            print(f"    ❌ 失败: {data.get('error')}")
+            return 
+    except Exception as e:
+        print(f"    ❌ 错误: {e}")
+        return
+
+    # Step 3: Polling Logic
+    if not qr_id:
+        print("\n    ❌ 无法轮询: 缺少 qr_id")
+        return
+
+    print("\n[3/3] 等待扫码登录 (Polling /api/creator/auth/qrcode/status)...")
+    print("    ", end="", flush=True)
+    
+    start_time = time.time()
+    last_status = -1
+    
+    while time.time() - start_time < 120:
+        try:
+            req = urllib.request.Request(f"{BASE_URL}/api/creator/auth/qrcode/status", method='POST')
+            req.add_header('Content-Type', 'application/json')
+            poll_payload = json.dumps({"qr_id": qr_id, "cookies": cookies}).encode('utf-8')
+            
+            with urllib.request.urlopen(req, data=poll_payload, timeout=30) as response:
+                poll_data = json.loads(response.read().decode('utf-8'))
+            
+            if poll_data.get("success"):
+                inner_data = poll_data.get("data", {})
+                
+                # Retrieve status from inner data
+                status = None
+                if isinstance(inner_data, dict):
+                    status = inner_data.get("status")
+
+                if status == 2: # Waiting
+                     if last_status != 2:
+                        print(".", end="", flush=True)
+                        last_status = 2
+                elif status == 3: # Scanned
+                     if last_status != 3:
+                        print("\n    ✓ 已扫码，等待确认...", end="", flush=True)
+                        last_status = 3
+                elif status == 1: # Success (Login Confirmed)
+                    print("\n")
+                    print(f"    ✅ 登录成功! (Status: {status})")
+                    print(f"    完整响应: {json.dumps(poll_data, indent=2, ensure_ascii=False)}")
+                    return
+                elif status is not None:
+                    # Known success or other state
+                    print("\n")
+                    print(f"    ✅ 状态变更: {status}")
+                    print(f"    完整响应: {json.dumps(poll_data, indent=2, ensure_ascii=False)}")
+                    return
+                else:
+                     print("?", end="", flush=True)
+            else:
+                 print("x", end="", flush=True)
+                 
+        except Exception:
+            print("!", end="", flush=True)
+        
+        time.sleep(2)
+
+    print("\n    ❌ 登录超时")
+
+
+# ============================================================================
+# Main Helper
 # ============================================================================
 
 def print_banner():
     """打印启动横幅"""
     print("\n" + "=" * 50)
-    print("      XHS API 客户端演示")
-    print("      (Pure Rust Architecture v2.0)")
+    print("      XHS API 客户端演示 (v2.1 Integrated)")
+    print("      (Pure Rust Architecture)")
     print("=" * 50 + "\n")
 
 
 def check_session() -> bool:
     """检查现有 Session 是否有效"""
-    print("\n[检查] 验证现有 Session...")
-    return test_user_me()
+    # Simply call test_user_me but capture output to avoid spam if just checking
+    try:
+        req = urllib.request.Request(f"{BASE_URL}/api/user/me")
+        with urllib.request.urlopen(req, timeout=10) as response:
+            data = json.loads(response.read().decode('utf-8'))
+            return data.get("success", False)
+    except:
+        return False
 
 
 def test_all_apis():
@@ -177,34 +317,19 @@ def test_all_apis():
     print("  开始测试所有 API 端点")
     print("=" * 50)
     
-    # User
     test_user_me()
-    
-    # Search
     test_trending()
     test_search_recommend()
     sid = test_search_notes()
     test_search_onebox(sid)
     test_search_user(sid)
     test_search_filter(sid)
-    
-    # Feed
     test_homefeed()
-    
-    # Notifications
     test_notifications()
-    
-    # Category Feeds
     test_category_feeds()
-    
-    # Notes
     test_note_page()
     test_note_detail()
-    
-    # Pagination Test (分页测试)
     test_homefeed_pagination()
-    
-    # Media Test (媒体采集测试)
     test_media()
     
     print("\n" + "=" * 50)
@@ -212,23 +337,85 @@ def test_all_apis():
     print("=" * 50)
 
 
+def interactive_menu():
+    """Interactive CLI Menu"""
+    while True:
+        print("\n" + "-" * 30)
+        print("  功能菜单:")
+        print("  1. 用户登录 (User Login Flow)")
+        print("  2. 创作者登录 (Creator Login Flow)")
+        print("  3. 测试所有用户接口 (Test All User APIs)")
+        print("  4. 测试单个接口...")
+        print("  0. 退出 (Exit)")
+        print("-" * 30)
+        
+        choice = input("请选择 (0-4): ").strip()
+        
+        if choice == '0':
+            print("再见!")
+            sys.exit(0)
+        elif choice == '1':
+            run_login_flow()
+        elif choice == '2':
+            test_creator_login()
+        elif choice == '3':
+            if run_login_flow():
+                test_all_apis()
+        elif choice == '4':
+            display_api_menu()
+        else:
+            print("无效选择，请重试")
+
+
+def display_api_menu():
+    """Sub-menu for individual APIs"""
+    sid = ""
+    while True:
+        print("\n  接口测试菜单:")
+        print("  1. User Me")
+        print("  2. Search Trending")
+        print("  3. Search Notes")
+        print("  4. Home Feed")
+        print("  5. Note Detail")
+        print("  6. Media Download")
+        print("  0. 返回上级")
+        
+        c = input("选择接口 (0-6): ").strip()
+        if c == '0': return
+        elif c == '1': test_user_me()
+        elif c == '2': test_trending()
+        elif c == '3': sid = test_search_notes()
+        elif c == '4': test_homefeed()
+        elif c == '5': test_note_detail()
+        elif c == '6': test_media()
+        else: print("无效选择")
+
+
 def main():
-    """主入口"""
     print_banner()
     
-    # Check session
-    if check_session():
-        print("\n    Session 有效，跳过登录")
-        test_all_apis()
-        return
+    parser = argparse.ArgumentParser(description="XHS API Client Demo")
+    parser.add_argument("--test", choices=["user", "creator", "all"], help="运行指定测试集")
+    args = parser.parse_args()
     
-    print("\n    需要登录")
-    
-    if login_flow():
-        time.sleep(2)
-        test_all_apis()
+    if args.test == "creator":
+        test_creator_login()
+    elif args.test == "user":
+        if run_login_flow():
+            test_all_apis()
+    elif args.test == "all":
+        print("Running User tests...")
+        if run_login_flow():
+            test_all_apis()
+        print("\nRunning Creator tests...")
+        test_creator_login()
     else:
-        print("\n❌ 登录失败，无法测试 API")
+        # Default to interactive mode
+        try:
+            interactive_menu()
+        except KeyboardInterrupt:
+            print("\n操作取消，退出")
+            sys.exit(0)
 
 
 if __name__ == "__main__":

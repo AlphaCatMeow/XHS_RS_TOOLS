@@ -64,12 +64,13 @@ cargo run
 python client_demo.py
 ```
 
-## 🚀 当前功能 (v1.9.0)
+## 🚀 当前功能 (v1.10.0)
 
 以下均为目前已实现并验证的功能：
 
+*   **🎨 创作者中心**: 全新支持 **创作者服务平台** 登录流程，包含 Guest 初始化、二维码生成及状态轮询 (v1.10.0 新增)。
 *   **🐳 Docker 容器化**: Python Agent 支持 Docker 部署，基于 `selenium/standalone-chrome` 镜像，开箱即用。
-*   **🍪 Cookie 同步优化**: 登录后智能合并 API cookies 与浏览器 cookies，彻底解决 461 风控问题。
+*   **🍪 Cookie 同步优化**: 登录后智能合并 API cookies 与浏览器 cookies，尝试解决偶发性 461 风控问题。
 *   **🎬 媒体采集**: 解析 **视频笔记** (多画质 CDN) 和 **图文笔记** (无水印/有水印)，支持服务端 **通用下载**。
 *   **🔐 纯 Rust 登录流程**: QR 码创建、状态轮询、登录确认全部 API 化，无需浏览器子进程。
 *   **🔍 全套搜索接口**: 支持搜索笔记(综合/视频/图文筛选)、搜索建议、OneBox、筛选器元数据、用户搜索。
@@ -77,18 +78,23 @@ python client_demo.py
 *   **🔔 通知页采集**: 获取评论/@、新增关注、赞和收藏，及其分页数据。
 *   **📝 笔记详情**: 获取指定笔记的完整内容（标题、正文、图片、标签）。
 *   **💬 笔记评论**: 获取指定笔记的评论列表，支持分页。
-*   **✍️ 实时签名**: Python Agent 提供 `xhshow` 算法实时签名。
+*   **✍️ 实时签名**: Python Agent 提供 `xhshow` 算法实时签名，全面支持创作者中心 API 签名。
 
 
 ## 📅 开发日志 (Dev Log)
 
 | 版本 | 日期 | 更新内容 | 
 | :--- | :--- | :--- | 
+| **v1.10.0** | 2026-01-24 | **创作者中心登录** | 
+| | | - 🎨 **创作者中心**: 新增 `/api/creator/auth` 模块，支持创作者 Guest 模式及二维码登录 | 
+| | | - 📖 **文档同步**: Swagger UI 同步更新创作者中心相关接口文档 | 
+| | | - 🖥️ **交互式终端**: `client_demo.py` 重构为交互式 CLI，支持 User/Creator 模式切换 | 
+| | | - 🤖 **Agent 升级**: Python Agent 服务更新，兼容创作者中心请求签名 | 
 | **v1.9.0** | 2026-01-23 | **Docker 容器化 & Cookie 同步优化** | 
 | | | - 🐳 **Agent 容器化**: 基于 `selenium/standalone-chrome:4.16.1` 镜像，使用 `undetected-chromedriver` + Xvfb 实现容器内 headed 模式 | 
-| | | - 🍪 **Cookie 深度优化**: 登录后智能合并 API cookies (含 `id_token`) 与浏览器 cookies (含 `a1`, `webId`)，彻底解决 461 问题 | 
-| | | - 🔑 **search_id 格式修正**: 统一使用 `2fvzx` 前缀 + 16位随机字符的真实格式 | 
-| | | - 📦 **代理配置**: 支持通过 `HTTP_PROXY`/`HTTPS_PROXY` 环境变量配置容器网络代理 | 
+| | | - 🍪 **Cookie 深度优化**: 登录后智能合并 API cookies (含 `id_token`) 与浏览器 cookies (含 `a1`, `webId`)，尝试解决 461 问题 | 
+| | | - 🔑 **search_id 格式修正**: 统一使用 `2fvzx` 前缀 + 16位随机字符的仿真格式 | 
+| | | - 📦 **代理配置**: 支持通过 `HTTP_PROXY`/`HTTPS_PROXY` 环境变量配置容器网络代理构建容器 | 
 | **v1.8.0** | 2026-01-22 | **存储轻量化 & 搜索风控突破** |
 | | | - 💾 **去数据库化**: 彻底移除 MongoDB 依赖，改用本地 JSON 文件存储 Cookie，实现开箱即用 | 
 | | | - 🔓 **461 修复**: 引入浏览器 Cookie 同步机制，解决 Search/OneBox 接口风控问题 | 
@@ -138,9 +144,12 @@ python client_demo.py
 
 | Category | Endpoint | Status | Description |
 | :--- | :--- | :--- | :--- |
-| **Auth** | `/api/auth/guest-init` | ✅ | 获取访客 Cookie (Playwright) |
+| **Auth** | `/api/auth/guest-init` | ✅ | 获取访客 Cookie  |
 | **Auth** | `/api/auth/qrcode/create` | ✅ | 创建登录二维码 |
 | **Auth** | `/api/auth/qrcode/status` | ✅ | 轮询登录状态 |
+| **Creator** | `/api/creator/auth/guest-init` | ✅ | 创作者中心访客初始化 |
+| **Creator** | `/api/creator/auth/qrcode/create` | ✅ | 创建创作者登录二维码 |
+| **Creator** | `/api/creator/auth/qrcode/status` | ✅ | 轮询创作者登录状态 |
 | **User** | `/api/user/me` | ✅ | 获取当前用户信息 |
 | **Search** | `/api/search/trending` | ✅ | 获取热搜推荐词 |
 | **Search** | `/api/search/notes` | ✅ |  笔记搜索 ([📖 分页指南](doc/search_pagination.md)) |
